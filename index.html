@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحويل أرقام الشحن</title>
+
+    <style>
+        body {
+            font-family: Tahoma, Arial;
+            background: #f6f6f6;
+            padding: 15px;
+        }
+
+        .card {
+            max-width: 500px;
+            margin: auto;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fafafa;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 8px;
+        }
+
+        .done {
+            color: green;
+        }
+
+        .wait {
+            opacity: .5;
+        }
+
+        .call {
+            background: #a23b2a;
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        .progress {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h2>شحن أرقام من Excel</h2>
+
+        <input type="file" id="file" accept=".xlsx,.xls">
+        <button onclick="loadExcel()">تحميل الأرقام</button>
+
+        <div class="progress" id="progress"></div>
+        <div id="list"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <script>
+let phones = [];
+let current = 0;
+const AMOUNT = 100; // مبلغ الشحن
+
+function loadExcel() {
+  const file = document.getElementById("file").files[0];
+  if (!file) {
+    alert("اختار ملف Excel");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    phones = rows
+        .map(r => String(r[0] || "").replace(/\D/g, ""))
+ 
+
+    current = 0;
+    render();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function render() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  phones.forEach((p, i) => {
+    const div = document.createElement("div");
+    div.className = "item";
+
+    if (i < current) {
+      div.innerHTML = `<span>${p}</span><span class="done">✓ تم</span>`;
+    }
+    else if (i === current) {
+      const ussd = `tel:*711*3*${AMOUNT}*${p}#`;
+      div.innerHTML = `
+        <span>${p}</span>
+        <a class="call" href="${ussd}" onclick="done()">حول الآن 📞</a>
+      `;
+    }
+    else {
+      div.innerHTML = `<span>${p}</span><span class="wait">انتظار</span>`;
+    }
+
+    list.appendChild(div);
+  });
+
+  document.getElementById("progress").innerText =
+    `${current} / ${phones.length} مكتمل`;
+}
+
+function done() {
+  setTimeout(() => {
+    current++;
+    render();
+  }, 1200);
+}
+    </script>
+
+</body>
+</html>
